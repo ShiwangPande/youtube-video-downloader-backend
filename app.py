@@ -6,6 +6,10 @@ import subprocess
 import re
 import requests
 import time
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  
@@ -15,6 +19,10 @@ THUMBNAIL_FOLDER = 'thumbnails'
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 os.makedirs(THUMBNAIL_FOLDER, exist_ok=True)
 
+def get_cookies_file_path():
+    # Get the path to the cookies file from environment variables
+    return os.getenv('COOKIES_FILE_PATH', 'cookies.txt')
+
 @app.route('/video-info', methods=['POST'])
 def video_info():
     data = request.get_json()  
@@ -23,19 +31,18 @@ def video_info():
         return jsonify({"error": "No URL provided"}), 400
 
     try:
-  
         if not url.startswith(('http://', 'https://')):
             return jsonify({"error": "Invalid URL"}), 400
 
         ydl_opts = {
             'format': 'bestvideo+bestaudio/best',
             'noplaylist': True,
+            'cookiefile': get_cookies_file_path()  
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
         
-    
         video_details = {
             'title': info.get('title', 'Unknown Title'),
             'description': info.get('description', 'No description available'),
@@ -83,16 +90,15 @@ def download_video():
                     else:
                         raise Exception(f"Unable to access file: {file_path}")
 
-  
         ensure_file_unlocked(video_path)
         ensure_file_unlocked(audio_path)
         ensure_file_unlocked(final_path)
 
-   
         ydl_opts_video = {
             'format': 'bestvideo',
             'outtmpl': video_path,
             'noplaylist': True,
+            'cookiefile': get_cookies_file_path(),  
             'overwrites': True,
             'nooverwrites': False
         }
@@ -101,6 +107,7 @@ def download_video():
             'format': 'bestaudio',
             'outtmpl': audio_path,
             'noplaylist': True,
+            'cookiefile': get_cookies_file_path(), 
             'overwrites': True,
             'nooverwrites': False
         }
@@ -111,14 +118,12 @@ def download_video():
         with yt_dlp.YoutubeDL(ydl_opts_audio) as ydl:
             ydl.download([url])
 
-
         subprocess.run([
             'ffmpeg', '-i', video_path, '-i', audio_path, '-c:v', 'copy', '-c:a', 'aac', '-strict', 'experimental', final_path
         ], check=True)
 
         if not os.path.exists(final_path):
             return jsonify({"error": "File not found"}), 404
-
 
         if thumbnail_url:
             try:
@@ -130,10 +135,8 @@ def download_video():
             except Exception as e:
                 print(f"Failed to download thumbnail: {str(e)}")
 
-
         file_size = os.path.getsize(final_path)
 
- 
         response = send_file(
             final_path,
             as_attachment=True,
@@ -141,7 +144,6 @@ def download_video():
             mimetype='video/mp4'
         )
 
-  
         response.headers['Content-Length'] = str(file_size)
 
         return response
@@ -149,8 +151,8 @@ def download_video():
     except Exception as e:
         print(f"Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
 def sanitize_filename(filename):
- 
     return re.sub(r'[<>:"/\\|?*\x00-\x1F]', '_', filename)
 
 if __name__ == '__main__':

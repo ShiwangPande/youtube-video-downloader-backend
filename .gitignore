@@ -1,1 +1,4 @@
 venv
+cookies.txt
+# Ignore environment variables file
+.env
