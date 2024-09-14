@@ -21,7 +21,7 @@ os.makedirs(THUMBNAIL_FOLDER, exist_ok=True)
 
 def get_cookies_file_path():
     # Get the path to the cookies file from environment variables
-    return os.getenv('COOKIES_FILE_PATH', 'cookies.txt')
+    return os.getenv('COOKIES_FILE_PATH', '/etc/secrets/cookies.txt')
 
 @app.route('/video-info', methods=['POST'])
 def video_info():
