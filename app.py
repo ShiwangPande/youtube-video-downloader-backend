@@ -8,8 +8,7 @@ import requests
 import time
 
 app = Flask(__name__)
-CORS(app)  
-
+CORS(app, resources={r"/*": {"origins": "*"}})
 DOWNLOAD_FOLDER = 'downloads'
 THUMBNAIL_FOLDER = 'thumbnails'
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
